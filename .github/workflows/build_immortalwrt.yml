@@ -1,0 +1,146 @@
+name: 🚀 编译 immortalwrt(Build immortalwrt)
+
+on:
+  workflow_dispatch:
+    inputs:
+      owner:
+        description: "OpenWRT 仓库的拥有者 (Owner of OpenWRT repo)"
+        type: string
+        required: true
+        default: "immortalwrt"
+      repo:
+        description: "OpenWRT 仓库的名字 (Name of OpenWRT repo)"
+        type: string
+        required: true
+        default: "immortalwrt"
+      branch:
+        description: "OpenWRT 仓库的分支 (Branch of OpenWRT repo)"
+        type: string
+        required: true
+        default: "OpenWRT-24.10"
+      multithreading:
+        description: "开启多线程编译 (Enable multithreading build)"
+        type: boolean
+        default: true
+      ssh:
+        description: "使用 ssh 连接到编译环境 (Connect to the build environment using ssh)"
+        type: boolean
+        default: false
+      isFiles:
+        description: "使用files大法 (Whether to upload the etc files)"
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: 🚀 编译 (Build)
+    steps:
+      - name: Before freeing up disk space
+        run: |
+          echo "Before freeing up disk space"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
+
+      - name: "Optimize Disk Space"
+        uses: "hugoalh/disk-space-optimizer-ghaction@v0.8.1"
+        with:
+          operate_sudo: "True"
+          general_include: ".+"
+          general_exclude: |-
+            ^GCC$
+            ^G\+\+$
+            Clang
+            LLVM
+          docker_include: ".+"
+          docker_prune: "True"
+          docker_clean: "True"
+          apt_prune: "True"
+          apt_clean: "True"
+          homebrew_prune: "True"
+          homebrew_clean: "True"
+          npm_prune: "True"
+          npm_clean: "True"
+          os_swap: "True"
+
+      - name: Freeing up disk space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 3072
+          swap-size-mb: 1
+          remove-dotnet: "true"
+          remove-android: "true"
+          remove-haskell: "true"
+          remove-codeql: "true"
+          remove-docker-images: "true"
+
+      - name: Free up disk space complete
+        run: |
+          echo "Free up disk space complete"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
+
+      - name: 下载编译所需的依赖 (Install the software packages required for compilation)
+        run: |
+          sudo apt update
+          sudo apt full-upgrade -y
+          sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev libpython3-dev libreadline-dev libssl-dev libtool libyaml-dev libz-dev lld llvm lrzsz mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip python3-ply python3-docutils python3-pyelftools qemu-utils re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
+
+      - name: 克隆当前仓库 (Clone current repo)
+        uses: actions/checkout@v4
+
+      - name: 克隆 OpenWRT 仓库 (Clone OpenWRT repo)
+        uses: actions/checkout@v4
+        with:
+          repository: "${{inputs.owner}}/${{inputs.repo}}"
+          ref: ${{inputs.branch}}
+          path: OpenWRT
+
+      - name: 复制当前仓库的配置文件到 OpenWRT 仓库  (Copy current repo config to OpenWRT repo)
+        run: cp -f .config diy.sh OpenWRT/
+
+      - name: 如果选择了上传 files 大法，则复制 files 目录到 OpenWRT 仓库 (If you choose to upload the etc files, copy the etc directory to the OpenWRT repo)
+        if: ${{inputs.isFiles == true}}
+        run: cp -r files OpenWRT/files
+
+      - name: 运行 diy.sh (Run diy.sh)
+        working-directory: OpenWRT
+        run: |
+          chmod +x diy.sh
+          ./diy.sh
+
+      - name: 更新并下载 feeds (Update and download feeds)
+        working-directory: OpenWRT
+        run: ./scripts/feeds update -a && ./scripts/feeds install -a
+
+      - name: 使用ssh连接编译环境，限时15分钟，可在连接后输入命令 `touch /tmp/keepalive` 保活 (连上SSH后按q 进入OpenWRT目录cd OpenWRT 执行make menuconfig)
+        if: ${{inputs.ssh == true}}
+        uses: csexton/debugger-action@master
+
+      - name: 启用ssh生成了.config后在编译前上传配置(Upload config before build)
+        if: ${{inputs.multithreading == true}}
+        uses: actions/upload-artifact@v4
+        with:
+          name: config-before-build
+          path: |
+            OpenWRT/.config
+            OpenWRT/feeds.conf.default
+          include-hidden-files: true
+
+      - name: 多线程编译 OpenWRT (Build OpenWRT multithreading)
+        if: ${{inputs.multithreading == true}}
+        working-directory: OpenWRT
+        run: make -j$(nproc) V=s
+
+      - name: 单线程编译 OpenWRT (Build OpenWRT single thread)
+        if: ${{inputs.multithreading == false}}
+        working-directory: OpenWRT
+        run: make -j1 V=s
+
+      - name: 上传编译结果到 Artifact (Upload build result to Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenWRT-build-result
+          path: OpenWRT/bin/targets
