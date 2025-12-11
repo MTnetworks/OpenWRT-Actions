@@ -31,6 +31,9 @@ sed -i 's/OpenWrt/MTnetwork/g' package/kernel/mac80211/files/lib/wifi/mac80211.s
 rm -rf package/base-files/files/etc/banner
 cp -f ../banner package/base-files/files/etc/
 
+# npm-cache
+npm config set cache ~/.npm-cache --global
+
 # 添加额外的软件包，echo 方式和git clone 方式二选一即可
 #echo 'src-git kenzok8 https://github.com/kenzok8/openwrt-packages' >>feeds.conf.default
 echo 'src-git small https://github.com/kenzok8/small' >>feeds.conf.default
