@@ -32,7 +32,7 @@ git clone https://github.com/sirpdboy/luci-app-netspeedtest.git package/luci-app
 # git clone https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter    
 # 
 #openwrt-apps
-git clone https://github.com/mtnetworks/openwrt-apps package/openwrt-apps
+git clone https://github.com/MTnetworks/openwrt-apps package/openwrt-apps
 # '修改默认主题'
 # sed -i 's/config internal themes/config internal themes\n    option Argon  \"\/luci-static\/argon\"/g' feeds/luci/modules/luci-base/root/etc/config/luci
 #删除默认密码
