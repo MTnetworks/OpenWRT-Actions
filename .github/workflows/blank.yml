@@ -1,0 +1,167 @@
+name: 🚀 编译 Openwrt(Auto Build Openwrt)
+
+on:
+  workflow_dispatch:
+    inputs:
+      owner:
+        description: "Openwrt 仓库的拥有者 (Owner of Openwrt repo)"
+        type: string
+        required: true
+        default: "openwrt"
+      repo:
+        description: "Openwrt 仓库的名字 (Name of Openwrt repo)"
+        type: string
+        required: true
+        default: "openwrt"
+      branch:
+        description: "Openwrt 仓库的分支 (Branch of Openwrt repo)"
+        type: string
+        required: true
+        default: "master"
+      multithreading:
+        description: "开启多线程编译 (Enable multithreading build)"
+        type: boolean
+        default: true
+      ssh:
+        description: "使用 ssh 连接到编译环境 (Connect to the build environment using ssh)"
+        type: boolean
+        default: true
+      isFiles:
+        description: "使用files大法 (Whether to upload the etc files)"
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: 🚀 编译 (Build)
+    steps:
+      - name: Before freeing up disk space
+        run: |
+          echo "Before freeing up disk space"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
+
+      - name: "Optimize Disk Space"
+        uses: "hugoalh/disk-space-optimizer-ghaction@v0.8.1"
+        with:
+          operate_sudo: "True"
+          general_include: ".+"
+          general_exclude: |-
+            ^GCC$
+            ^G\+\+$
+            Clang
+            LLVM
+          docker_include: ".+"
+          docker_prune: "True"
+          docker_clean: "True"
+          apt_prune: "True"
+          apt_clean: "True"
+          homebrew_prune: "True"
+          homebrew_clean: "True"
+          npm_prune: "True"
+          npm_clean: "True"
+          os_swap: "True"
+
+      - name: Freeing up disk space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 3072
+          swap-size-mb: 1
+          remove-dotnet: "true"
+          remove-android: "true"
+          remove-haskell: "true"
+          remove-codeql: "true"
+          remove-docker-images: "true"
+
+      - name: Free up disk space complete
+        run: |
+          echo "Free up disk space complete"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
+
+      - name: 下载编译所需的依赖 (Install the software packages required for compilation)
+        run: |
+          sudo apt update
+          sudo apt full-upgrade -y
+          sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool llvm lrzsz msmtp libnsl-dev ninja-build p7zip p7zip-full patch pkgconf python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
+
+      - name: 克隆当前仓库 (Clone current repo)
+        uses: actions/checkout@v4
+
+      - name: 克隆 Openwrt 仓库 (Clone Openwrt repo)
+        uses: actions/checkout@v4
+        with:
+          repository: "${{inputs.owner}}/${{inputs.repo}}"
+          ref: ${{inputs.branch}}
+          path: Openwrt
+
+      - name: 复制当前仓库的配置文件到 Openwrt 仓库  (Copy current repo config to Openwrt repo)
+        run: cp -f .config openwrt.sh Openwrt/
+
+      - name: 如果选择了上传 files 大法，则复制 files 目录到 Openwrt 仓库 (If you choose to upload the etc files, copy the etc directory to the Openwrt repo)
+        if: ${{inputs.isFiles == true}}
+        run: cp -r files Openwrt/files
+
+      - name: 运行 openwrt.sh (Run openwrt.sh)
+        working-directory: Openwrt
+        run: |
+          chmod +x openwrt.sh
+          ./openwrt.sh
+
+      - name: 更新并下载 feeds (Update and download feeds)
+        working-directory: Openwrt
+        run: ./scripts/feeds update -a && ./scripts/feeds install -a
+      - name: 修补 Rust 引导配置以兼容 CI (Patch Rust bootstrap config for CI)
+        working-directory: Openwrt
+        run: |
+          set -euxo pipefail
+          if [ -d "feeds/packages/lang" ]; then
+            for d in feeds/packages/lang/rust feeds/packages/lang/rust*; do
+              [ -d "$d" ] || continue
+              find "$d" -type f \( -name '*.toml' -o -name 'Makefile' -o -name '*.mk' \) | while read -r f; do
+                sed -i -E 's/(download-ci-llvm\s*=\s*)true/\1"if-unchanged"/g' "$f" || true
+              done
+            done
+          fi
+
+      - name: 使用ssh连接编译环境，限时15分钟，可在连接后输入命令 `touch /tmp/keepalive` 保活 ( 连上SSH后按q 进入Openwrt目录cd Openwrt 执行make menuconfig)
+        if: ${{inputs.ssh == true}}
+        uses: csexton/debugger-action@master
+
+      - name: 启用ssh生成了.config后在编译前上传配置(Upload config before build)
+        if: ${{inputs.multithreading == true}}
+        uses: actions/upload-artifact@v4
+        with:
+          name: config-before-build
+          path: |
+            Openwrt/.config
+            Openwrt/feeds.conf.default
+          include-hidden-files: true
+
+      - name: 多线程download (Download Openwrt multithreading)
+        working-directory: Openwrt
+        run: make download -j$(nproc)
+      - name: 预构建 Rust [host]（临时取消 CI 变量） (Prebuild Rust host with CI disabled)
+        working-directory: Openwrt
+        run: |
+          set -euxo pipefail
+          CI=false make package/feeds/packages/rust/host/compile V=s || true
+
+      - name: 多线程编译 Openwrt (Build Openwrt multithreading)
+        if: ${{inputs.multithreading == true}}
+        working-directory: Openwrt
+        run: make -j$(nproc) V=s
+
+      - name: 单线程编译 Openwrt (Build Openwrt single thread)
+        if: ${{inputs.multithreading == false}}
+        working-directory: Openwrt
+        run: make -j1 V=s
+
+      - name: 上传编译结果到 Artifact (Upload build result to Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Openwrt-build-result
+          path: Openwrt/bin/targets
