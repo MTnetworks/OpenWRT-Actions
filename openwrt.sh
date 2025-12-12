@@ -7,7 +7,6 @@
 # # 添加额外的软件包Add a feed source
 echo 'src-git helloworld https://github.com/fw876/helloworld' >>feeds.conf.default
 # echo 'src-git lean_packages https://github.com/coolsnowwolf/packages.git' >>feeds.conf.default
-echo 'src-git openwrt-apps https://github.com/mtnetworks/openwrt-apps' >> feeds.conf.default
 # Modify default IP
 #修改默认 IP为192.168.1.1
 sed -i 's/192.168.1.1/10.10.10.1/g' package/base-files/files/bin/config_generate
@@ -32,6 +31,8 @@ git clone https://github.com/sirpdboy/luci-app-netspeedtest.git package/luci-app
 # OPAssistant
 # git clone https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter    
 # 
+#openwrt-apps
+git clone https://github.com/mtnetworks/openwrt-apps package/openwrt-apps
 # '修改默认主题'
 # sed -i 's/config internal themes/config internal themes\n    option Argon  \"\/luci-static\/argon\"/g' feeds/luci/modules/luci-base/root/etc/config/luci
 #删除默认密码
