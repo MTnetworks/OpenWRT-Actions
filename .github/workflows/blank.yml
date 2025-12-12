@@ -1,4 +1,4 @@
-name: 🚀 编译 Openwrt(Auto Build Openwrt)
+name: 🚀 编译 Openwrt(测试)
 
 on:
   workflow_dispatch:
