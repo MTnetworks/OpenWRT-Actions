@@ -7,8 +7,7 @@
 # # 添加额外的软件包Add a feed source
 echo 'src-git helloworld https://github.com/fw876/helloworld' >>feeds.conf.default
 echo 'src-git lean_packages https://github.com/coolsnowwolf/packages.git' >>feeds.conf.default
-echo 'src-git lean_packages https://github.com/coolsnowwolf/packages.git' >>feeds.conf.default
-echo 'src-git lean_luci https://github.com/coolsnowwolf/luci.git' >>feeds.conf.default
+echo 'src-git kenzo https://github.com/kenzok8/openwrt-packages' >> feeds.conf.default
 # Modify default IP
 #修改默认 IP为192.168.1.1
 sed -i 's/192.168.1.1/10.10.10.1/g' package/base-files/files/bin/config_generate
