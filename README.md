@@ -7,18 +7,5 @@ fork这个仓库。可选编译immortalwrt或者openwrt。可以上传.config也
     勾选了很多插件容易导致编译慢以及报错，建议按需勾选。
   
 
-## 默认.config如下
-
-- target x86/x86_64
-- 160M 内核空间
-- 1600M root空间
-  
--------------------------------
-
-- network/adguardhome
-- luci-app-homeproxy
-- luci-app-openclash
-- luci-app-acme
-- luci-app-wol
 
   
