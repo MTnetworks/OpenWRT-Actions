@@ -25,6 +25,10 @@ git clone https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-a
 git clone https://github.com/garypang13/luci-theme-edge.git package/luci-theme-edge
 # PassWall2
 git clone https://github.com/xiaorouji/openwrt-passwall2.git package/luci-app-passwall2
+# 网速测试
+git clone https://github.com/sirpdboy/luci-app-netspeedtest.git package/luci-app-netspeedtest
+# istore商店
+git clone https://github.com/linkease/istore.git package/istore
 # 
 # '修改默认主题'
 # sed -i 's/config internal themes/config internal themes\n    option Argon  \"\/luci-static\/argon\"/g' feeds/luci/modules/luci-base/root/etc/config/luci
