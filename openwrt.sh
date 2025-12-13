@@ -27,12 +27,13 @@ git clone https://github.com/garypang13/luci-theme-edge.git package/luci-theme-e
 # 网速测试
 git clone https://github.com/sirpdboy/luci-app-netspeedtest.git package/luci-app-netspeedtest
 # istore商店
-# git clone https://github.com/linkease/istore.git package/istore
+git clone https://github.com/linkease/istore.git package/istore
 # OPAssistant
 # git clone https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter    
 # 
 #openwrt-apps
 git clone https://github.com/MTnetworks/openwrt-apps package/openwrt-apps
+
 # 1. 添加 Argon 主题到列表
 sed -i 's/config internal themes/config internal themes\n    option Argon  \"\/luci-static\/argon\"/g' feeds/luci/modules/luci-base/root/etc/config/luci
 # 2. 设置 Argon 为默认主题
