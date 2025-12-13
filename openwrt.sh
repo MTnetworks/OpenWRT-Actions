@@ -34,10 +34,6 @@ git clone https://github.com/linkease/istore.git package/istore
 #openwrt-apps
 git clone https://github.com/MTnetworks/openwrt-apps package/openwrt-apps
 
-# 1. 添加 Argon 主题到列表
-sed -i 's/config internal themes/config internal themes\n    option Argon  \"\/luci-static\/argon\"/g' feeds/luci/modules/luci-base/root/etc/config/luci
-# 2. 设置 Argon 为默认主题
-sed -i "s|option mediaurlbase .*|option mediaurlbase '/luci-static/argon'|g" feeds/luci/modules/luci-base/root/etc/config/luci
 #删除默认密码
 # sed -i "/CYXluq4wUazHjmCDBCqXF/d" package/lean/default-settings/files/zzz-default-settings
 # 修改wifi名称
