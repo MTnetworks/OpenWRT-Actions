@@ -68,7 +68,7 @@ jobs:
         uses: easimon/maximize-build-space@master
         with:
           root-reserve-mb: 3072
-          swap-size-mb: 1
+          swap-size-mb: 8192
           remove-dotnet: "true"
           remove-android: "true"
           remove-haskell: "true"
@@ -114,6 +114,22 @@ jobs:
       - name: 更新并下载 feeds (Update and download feeds)
         working-directory: Openwrt
         run: ./scripts/feeds update -a && ./scripts/feeds install -a
+
+      - name: 生成配置并同步依赖 (Generate defconfig)
+        working-directory: Openwrt
+        run: make defconfig
+      - name: 修补 Rust 引导配置以兼容 CI (Patch Rust bootstrap config for CI)
+        working-directory: Openwrt
+        run: |
+          set -euxo pipefail
+          if [ -d "feeds/packages/lang" ]; then
+            for d in feeds/packages/lang/rust feeds/packages/lang/rust*; do
+              [ -d "$d" ] || continue
+              find "$d" -type f \( -name '*.toml' -o -name 'Makefile' -o -name '*.mk' \) | while read -r f; do
+                sed -i -E 's/(download-ci-llvm\s*=\s*)true/\1"if-unchanged"/g' "$f" || true
+              done
+            done
+          fi
 
       - name: 使用ssh连接编译环境，限时15分钟，可在连接后输入命令 `touch /tmp/keepalive` 保活 ( 连上SSH后按q 进入Openwrt目录cd Openwrt 执行make menuconfig)
         if: ${{inputs.ssh == true}}
