@@ -86,7 +86,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt full-upgrade -y
-          sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool llvm lrzsz msmtp libnsl-dev ninja-build p7zip p7zip-full patch pkgconf python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev bc perl python3-distutils file
+          sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint bc binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool llvm lrzsz msmtp libnsl-dev ninja-build p7zip p7zip-full patch perl pkgconf python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev file
 
       - name: 克隆当前仓库 (Clone current repo)
         uses: actions/checkout@v4
@@ -114,6 +114,18 @@ jobs:
       - name: 更新并下载 feeds (Update and download feeds)
         working-directory: Openwrt
         run: ./scripts/feeds update -a && ./scripts/feeds install -a
+      - name: 生成配置并同步依赖 (Generate defconfig)
+        working-directory: Openwrt
+        run: make defconfig
+      - name: 检查构建前置依赖 (Check prereqs)
+        working-directory: Openwrt
+        run: ./scripts/check_prereq || true
+      - name: 安装tools (Install tools)
+        working-directory: Openwrt
+        run: make tools/install -j$(nproc) V=s
+      - name: 安装toolchain (Install toolchain)
+        working-directory: Openwrt
+        run: make toolchain/install -j$(nproc) V=s
 
       - name: 使用ssh连接编译环境，限时15分钟，可在连接后输入命令 `touch /tmp/keepalive` 保活 ( 连上SSH后按q 进入Openwrt目录cd Openwrt 执行make menuconfig)
         if: ${{inputs.ssh == true}}
